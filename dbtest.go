@@ -48,7 +48,7 @@ func RandStringBytes(n int) string {
 }
 
 func dbsetup() {
-    dsn := fmt.Sprintf("%s:%s@/%s", *mysql_user, *mysql_password, *mysql_db)
+    dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", *mysql_user, *mysql_password, *mysql_host, *mysql_port, *mysql_db)
     //db, err := sql.Open("mysql", "user:password@/dbname")
     db, err := sql.Open("mysql", dsn)
     if err != nil {
@@ -137,8 +137,9 @@ func do_reads(db *sql.DB) []rres {
     return resultarr
 }
 func dbprocess() []rres {
-    dsn := fmt.Sprintf("%s:%s@/%s", *mysql_user, *mysql_password, *mysql_db)
+    dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", *mysql_user, *mysql_password, *mysql_host, *mysql_port, *mysql_db)
     //db, err := sql.Open("mysql", "user:password@/dbname")
+    fmt.Printf("dsn: %s\n", dsn)
     db, err := sql.Open("mysql", dsn)
 
     if err != nil {
