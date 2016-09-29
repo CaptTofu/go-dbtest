@@ -33,7 +33,7 @@ var (
     writes = flag.Int("writes", 1, "write ops")
     updates = flag.Int("updates", 1, "update ops")
     reads = flag.Int("reads", 1, "read ops")
-    col_len = flag.Int("col-len", 16, "length of string to insert max 5000")
+    col_len = flag.Int("col-len", 256, "length of string to insert max 5000")
 )
 var db *sql.DB
 
@@ -55,18 +55,20 @@ func dbsetup() {
         log.Panic(err)
     }
 
-    stmt, err := db.Prepare("drop table if exists t1")
-    res, err := stmt.Exec()
-    checkErr(err)
+    //stmt, err := db.Prepare("drop table if exists t1")
+    //res, err := stmt.Exec()
+    //checkErr(err)
 
-    stmt, err = db.Prepare("create table t1 (id int auto_increment, message varchar(5000) not null default '', created datetime, primary key (id)) engine=innodb")
-    res, err = stmt.Exec()
+    fmt.Println("creating table t1")
+    stmt, err := db.Prepare("create table if not exists t1 (id int auto_increment, message varchar(5000) not null default '', created datetime, primary key (id)) engine=innodb")
+    res, err := stmt.Exec()
     checkErr(err)
 
     id, err := res.LastInsertId()
     checkErr(err)
 
     fmt.Println(id)
+
 }
 
 func random(min int, max int) int {
@@ -130,8 +132,10 @@ func do_reads(db *sql.DB) []rres {
         err := db.QueryRow("SELECT * FROM t1 where id = ?", rnd).Scan(&id, &message, &created)
         checkErr(err)
 
-        resstruct = rres{id, message, created}
-        resultarr = append(resultarr, resstruct)
+        if message != "" {
+            resstruct = rres{id, message, created}
+            resultarr = append(resultarr, resstruct)
+        }
     }
 
     return resultarr
@@ -161,6 +165,7 @@ func main() {
 
     runtime.GOMAXPROCS(runtime.NumCPU())
 
+    dbsetup()
     http.HandleFunc("/json", jsonHandler)
     http.ListenAndServe(fmt.Sprintf(":%d", *port), Log(http.DefaultServeMux))
 }
@@ -184,6 +189,12 @@ func jsonHandler(w http.ResponseWriter, r *http.Request) {
 
 func checkErr(err error) {
     if err != nil {
-        panic(err)
+        if err == sql.ErrNoRows {
+            // there were no rows, but otherwise no error occurred
+            log.Print("sql.ErrNoRows")
+	} else {
+	    log.Fatal(err)
+            panic(err)
+	}
     }
 }
